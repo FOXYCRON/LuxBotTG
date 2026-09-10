@@ -97,7 +97,7 @@ module.exports = {
     const botones = Markup.inlineKeyboard([
       [
         Markup.button.url('💳 Comprar', 'https://t.me/LioTDH'),
-        Markup.button.url('✅ Referencias', 'https://t.me/LuxPassGP')
+        Markup.button.url('✅ Referencias', 'https://t.me/LuxPassRF')
       ]
     ]);
 
