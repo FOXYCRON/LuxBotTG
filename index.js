@@ -1,9 +1,23 @@
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { Telegraf, Markup } = require('telegraf');
 const config = require('./config/config');
 const gestorPermisos = require('./database/gestorPermisos');
+
+// --- Servidor HTTP para Render ---
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('🤖 LuxBot activo en Render.');
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Servidor HTTP escuchando en el puerto ${PORT}`);
+});
+// ---------------------------------
 
 // Validar que el token exista
 if (!config.token) {
@@ -94,7 +108,6 @@ async function registrarComandosTelegram() {
   }
 }
 
-// Evento: Nuevo usuario entra al grupo (Mensaje de Bienvenida con Prefix Dinámico)
 // Evento: Nuevo usuario entra al grupo (Mensaje de Bienvenida con Prefix Dinámico y Botones)
 bot.on('new_chat_members', async (ctx) => {
   try {
