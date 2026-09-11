@@ -36,6 +36,7 @@ module.exports = {
     let mensajeTexto = '';
     let clienteUser = null;
 
+    // Detectar si el mensaje viene con foto (directa o por respuesta)
     if (ctx.message.reply_to_message && ctx.message.reply_to_message.photo) {
       const photos = ctx.message.reply_to_message.photo;
       photoId = photos[photos.length - 1].file_id;
@@ -49,22 +50,33 @@ module.exports = {
     } else {
       return ctx.reply(
         '⚠️ **Uso del comando:**\n' +
-        `• Con foto: Responde a una foto con \`${prefix}ref @cliente Mensaje\`\n` +
-        `• Solo texto: Escribe \`${prefix}ref @cliente Mensaje\``,
+        `• Con foto: Responde a una foto con \`${prefix}ref @cliente | Mensaje\`\n` +
+        `• Solo texto: Escribe \`${prefix}ref Juan Perez | Paramount 1 Mes\` o \`${prefix}ref Paramount 1 Mes\``,
         { parse_mode: 'Markdown' }
       );
     }
 
     const emisor = ctx.from.username ? `@${ctx.from.username}` : ctx.from.first_name;
 
+    // 1. Caso con mención explícita (@usuario)
     const mencion = args.find(a => a.startsWith('@'));
     if (mencion) {
       clienteUser = mencion;
-      mensajeTexto = args.filter(a => !a.startsWith('@')).join(' ');
-    } else if (ctx.message.reply_to_message && ctx.message.reply_to_message.from) {
+      mensajeTexto = args.filter(a => a !== mencion).join(' ').replace(/^\|/, '').trim();
+    } 
+    // 2. Caso usando tubería (|) para separar cliente del servicio (ej: "Juan Perez | Paramount 1 Mes")
+    else if (mensajeTexto.includes('|')) {
+      const partes = mensajeTexto.split('|');
+      clienteUser = partes.shift().trim();
+      mensajeTexto = partes.join('|').trim();
+    }
+    // 3. Caso respondiendo a un mensaje de un usuario
+    else if (ctx.message.reply_to_message && ctx.message.reply_to_message.from) {
       const replyUser = ctx.message.reply_to_message.from;
       clienteUser = replyUser.username ? `@${replyUser.username}` : replyUser.first_name;
-    } else {
+    } 
+    // 4. Si no se especificó nada, se asigna el tag del emisor
+    else {
       clienteUser = emisor;
     }
 
@@ -84,20 +96,21 @@ module.exports = {
       timeZone: 'America/Hermosillo'
     });
 
+    // Diseño exclusivo estilo Ticket / Comprobante Comercial
     const plantillaRef = 
-`✅ **¡Nueva Referencia ${numVenta}!**
+`💎 **LUXPASS | REFERENCIA ${numVenta}**
 ───────────────────
-┌ **Enviada por:** ${emisor}
-├ **Referencia de:** ${clienteUser}
-├ **Fecha/ Hora:** ${fechaHora}
-└ **Mensaje:** ${mensajeTexto}
+👤 **Cliente:** ${clienteUser}
+🛡️ **Atendido por:** ${emisor}
+💬 **Servicio:** ${mensajeTexto}
+📅 **Fecha:** ${fechaHora}
 ───────────────────
-『 **LUXPASS BOT** 』`;
+✨ *¡Gracias por elegir LuxPass!*`;
 
     const botones = Markup.inlineKeyboard([
       [
-        Markup.button.url('💳 Comprar', 'https://t.me/LioTDH'),
-        Markup.button.url('✅ Referencias', 'https://t.me/LuxPassRF')
+        Markup.button.url('🛒 Comprar', 'https://t.me/LioTDH'),
+        Markup.button.url('⭐ Más Referencias', 'https://t.me/LuxPassRF')
       ]
     ]);
 
