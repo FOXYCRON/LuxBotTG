@@ -7,7 +7,7 @@ module.exports = {
   async execute(ctx, args, prefix) {
     const chatId = ctx.chat.id;
 
-    // 1. Obtener los comandos .js de comandos/usuarios/
+    // 1. Cargar comandos .js locales de la carpeta actual (usuarios)
     const carpetaUsuarios = __dirname;
     const archivosComandos = fs.readdirSync(carpetaUsuarios);
 
@@ -21,27 +21,38 @@ module.exports = {
       }
     }
 
-    // 2. Leer los comandos dinámicos desde database/comandos.json
-    let comandosDinamicos = [];
-    const rutaCmdJson = path.join(__dirname, '../../database/comandos.json');
+    // 2. Resolver la ruta absoluta a database/comandos.json
+    const rutaCmdJson = path.resolve(__dirname, '../../database/comandos.json');
+    const comandosDinamicosSet = new Set();
 
     if (fs.existsSync(rutaCmdJson)) {
       try {
-        const dataCmds = JSON.parse(fs.readFileSync(rutaCmdJson, 'utf-8'));
-        
-        // Al ser un Array [...], buscamos el elemento que coincida con el group_id actual
+        const contenidoRaw = fs.readFileSync(rutaCmdJson, 'utf-8');
+        const dataCmds = JSON.parse(contenidoRaw);
+
         if (Array.isArray(dataCmds)) {
-          const grupoEncontrado = dataCmds.find(g => String(g.group_id) === String(chatId));
-          if (grupoEncontrado && grupoEncontrado.comandos) {
-            comandosDinamicos = Object.keys(grupoEncontrado.comandos).map(cmd => `• \`${prefix}${cmd}\``);
+          // Buscar primero si existen comandos específicos para este chat
+          const grupoEspecifico = dataCmds.find(g => String(g.group_id) === String(chatId));
+
+          if (grupoEspecifico && grupoEspecifico.comandos) {
+            Object.keys(grupoEspecifico.comandos).forEach(cmd => comandosDinamicosSet.add(cmd));
+          } else {
+            // Si se ejecuta en privado o en un chat sin registro exclusivo, recolecta todos los comandos dinámicos existentes
+            dataCmds.forEach(grupo => {
+              if (grupo.comandos && typeof grupo.comandos === 'object') {
+                Object.keys(grupo.comandos).forEach(cmd => comandosDinamicosSet.add(cmd));
+              }
+            });
           }
         }
       } catch (e) {
-        console.error('Error al leer comandos.json:', e);
+        console.error('❌ Error al leer comandos.json:', e.message);
       }
     }
 
-    // 3. Construir mensaje
+    const comandosDinamicos = Array.from(comandosDinamicosSet).map(cmd => `• \`${prefix}${cmd}\``);
+
+    // 3. Construir mensaje final
     let lista = `📜 **LISTA DE COMANDOS DISPONIBLES**\n───────────────────\n\n`;
 
     if (comandosBase.length > 0) {
